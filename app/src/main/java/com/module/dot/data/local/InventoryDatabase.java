@@ -25,6 +25,7 @@ public class InventoryDatabase extends MyDatabaseManager {
     private static final String COL_TIMESTAMP = "timestamp";
 
     // Columns for inventory_sessions
+    private static final String COL_S_NAME = "name";
     private static final String COL_S_DATE_TIME = "date_time";
     private static final String COL_S_ITEM_COUNT = "item_count";
     private static final String COL_S_TOTAL_QTY = "total_qty";
@@ -60,11 +61,19 @@ public class InventoryDatabase extends MyDatabaseManager {
 
         String createSessions = "CREATE TABLE IF NOT EXISTS " + TABLE_SESSIONS + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_S_NAME + " TEXT NOT NULL DEFAULT '', " +
                 COL_S_DATE_TIME + " TEXT NOT NULL, " +
                 COL_S_ITEM_COUNT + " INTEGER NOT NULL DEFAULT 0, " +
                 COL_S_TOTAL_QTY + " INTEGER NOT NULL DEFAULT 0, " +
                 COL_S_EXPORTED + " INTEGER NOT NULL DEFAULT 0)";
         db.execSQL(createSessions);
+
+        // Migration: add name column if upgrading from older schema
+        try {
+            db.execSQL("ALTER TABLE " + TABLE_SESSIONS + " ADD COLUMN " + COL_S_NAME + " TEXT NOT NULL DEFAULT ''");
+        } catch (Exception ignored) {
+            // Column already exists
+        }
 
         // Ensure active session row exists
         Cursor cursor = db.rawQuery("SELECT " + COL_ID + " FROM " + TABLE_SESSIONS +
@@ -72,6 +81,7 @@ public class InventoryDatabase extends MyDatabaseManager {
         if (!cursor.moveToFirst()) {
             ContentValues cv = new ContentValues();
             cv.put(COL_ID, ACTIVE_SESSION_ID);
+            cv.put(COL_S_NAME, "");
             cv.put(COL_S_DATE_TIME, "");
             cv.put(COL_S_ITEM_COUNT, 0);
             cv.put(COL_S_TOTAL_QTY, 0);
@@ -107,6 +117,24 @@ public class InventoryDatabase extends MyDatabaseManager {
                 db.insert(TABLE_ITEMS, null, cv);
             }
             cursor.close();
+        }
+    }
+
+    /**
+     * Get current quantity of a barcode in active session, or 0 if not present.
+     */
+    public int getItemQuantity(String barcode) {
+        try (SQLiteDatabase db = this.getReadableDatabase()) {
+            Cursor cursor = db.rawQuery("SELECT " + COL_QUANTITY +
+                    " FROM " + TABLE_ITEMS +
+                    " WHERE " + COL_SESSION_ID + " = " + ACTIVE_SESSION_ID +
+                    " AND " + COL_BARCODE + " = ?", new String[]{barcode});
+            int qty = 0;
+            if (cursor.moveToFirst()) {
+                qty = cursor.getInt(0);
+            }
+            cursor.close();
+            return qty;
         }
     }
 
@@ -173,18 +201,17 @@ public class InventoryDatabase extends MyDatabaseManager {
     /**
      * Finalize current session: move items to history, update session metadata.
      */
-    public long finishSession(String dateTime, int itemCount, int totalQty) {
+    public long finishSession(String name, String dateTime, int itemCount, int totalQty) {
         long newSessionId;
         try (SQLiteDatabase db = this.getWritableDatabase()) {
-            // Insert new session record
             ContentValues cv = new ContentValues();
+            cv.put(COL_S_NAME, name != null ? name : "");
             cv.put(COL_S_DATE_TIME, dateTime);
             cv.put(COL_S_ITEM_COUNT, itemCount);
             cv.put(COL_S_TOTAL_QTY, totalQty);
             cv.put(COL_S_EXPORTED, 1);
             newSessionId = db.insert(TABLE_SESSIONS, null, cv);
 
-            // Migrate items from active session to the new history session
             ContentValues updateCv = new ContentValues();
             updateCv.put(COL_SESSION_ID, newSessionId);
             db.update(TABLE_ITEMS, updateCv, COL_SESSION_ID + " = ?",
@@ -199,8 +226,9 @@ public class InventoryDatabase extends MyDatabaseManager {
     public ArrayList<InventorySession> getSessions() {
         ArrayList<InventorySession> list = new ArrayList<>();
         try (SQLiteDatabase db = this.getReadableDatabase()) {
-            Cursor cursor = db.rawQuery("SELECT " + COL_ID + ", " + COL_S_DATE_TIME +
-                    ", " + COL_S_ITEM_COUNT + ", " + COL_S_TOTAL_QTY + ", " + COL_S_EXPORTED +
+            Cursor cursor = db.rawQuery("SELECT " + COL_ID + ", " + COL_S_NAME + ", " +
+                    COL_S_DATE_TIME + ", " + COL_S_ITEM_COUNT + ", " + COL_S_TOTAL_QTY +
+                    ", " + COL_S_EXPORTED +
                     " FROM " + TABLE_SESSIONS +
                     " WHERE " + COL_ID + " != " + ACTIVE_SESSION_ID +
                     " ORDER BY " + COL_ID + " DESC", null);
@@ -208,9 +236,10 @@ public class InventoryDatabase extends MyDatabaseManager {
                 list.add(new InventorySession(
                         cursor.getLong(0),
                         cursor.getString(1),
-                        cursor.getInt(2),
+                        cursor.getString(2),
                         cursor.getInt(3),
-                        cursor.getInt(4) == 1
+                        cursor.getInt(4),
+                        cursor.getInt(5) == 1
                 ));
             }
             cursor.close();
@@ -239,6 +268,40 @@ public class InventoryDatabase extends MyDatabaseManager {
             cursor.close();
         }
         return list;
+    }
+
+    /**
+     * Resume a historical session: copy its items back to the active session
+     * and delete the history record. Current active items are discarded.
+     */
+    public void resumeSession(long sessionId) {
+        try (SQLiteDatabase db = this.getWritableDatabase()) {
+            // Clear current active session
+            db.delete(TABLE_ITEMS, COL_SESSION_ID + " = ?",
+                    new String[]{String.valueOf(ACTIVE_SESSION_ID)});
+
+            // Move items from history back to active session
+            ContentValues cv = new ContentValues();
+            cv.put(COL_SESSION_ID, ACTIVE_SESSION_ID);
+            db.update(TABLE_ITEMS, cv, COL_SESSION_ID + " = ?",
+                    new String[]{String.valueOf(sessionId)});
+
+            // Delete the history session record
+            db.delete(TABLE_SESSIONS, COL_ID + " = ?",
+                    new String[]{String.valueOf(sessionId)});
+        }
+    }
+
+    /**
+     * Delete a history session and all its items permanently.
+     */
+    public void deleteSession(long sessionId) {
+        try (SQLiteDatabase db = this.getWritableDatabase()) {
+            db.delete(TABLE_ITEMS, COL_SESSION_ID + " = ?",
+                    new String[]{String.valueOf(sessionId)});
+            db.delete(TABLE_SESSIONS, COL_ID + " = ?",
+                    new String[]{String.valueOf(sessionId)});
+        }
     }
 
     /**

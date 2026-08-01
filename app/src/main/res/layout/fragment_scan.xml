@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/white">
 
-    <!-- Mode toggle + stats bar -->
+    <!-- Top bar: new session + stats + input bar -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
@@ -17,39 +17,17 @@
         android:background="@color/white"
         android:elevation="4dp">
 
-        <LinearLayout
+        <Button
+            android:id="@+id/newButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <Button
-                android:id="@+id/modeButton"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:text="自动 +1"
-                android:textColor="@color/white"
-                android:textSize="13sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:minHeight="0dp" />
-
-            <Button
-                android:id="@+id/newButton"
-                android:layout_width="0dp"
-                android:layout_height="36dp"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="新建盘点"
-                android:textColor="@color/white"
-                android:textSize="13sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:minHeight="0dp"
-                android:backgroundTint="@color/dark_gray" />
-
-        </LinearLayout>
+            android:layout_height="36dp"
+            android:text="新建盘点"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:minHeight="0dp"
+            android:backgroundTint="@color/dark_gray" />
 
         <TextView
             android:id="@+id/statsText"
@@ -61,6 +39,73 @@
             android:textColor="@color/black"
             android:gravity="center"
             android:textStyle="bold" />
+
+        <!-- Unified barcode input bar — always visible -->
+        <LinearLayout
+            android:id="@+id/inputBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/barcodeInput"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:hint="输入或扫描条码"
+                android:textSize="15sp"
+                android:textColor="@color/black"
+                android:textColorHint="@color/light_gray"
+                android:inputType="text"
+                android:imeOptions="actionDone"
+                android:singleLine="true"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:background="@drawable/light_blue_border" />
+
+            <ImageButton
+                android:id="@+id/scanBtn"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:src="@drawable/ic_camera"
+                android:contentDescription="摄像头扫码"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:scaleType="centerInside"
+                android:tint="@color/black" />
+
+            <Button
+                android:id="@+id/modeBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="自动累计"
+                android:textSize="12sp"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/green" />
+
+            <Button
+                android:id="@+id/confirmBtn"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="✓"
+                android:textSize="18sp"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/green" />
+
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Inventory list -->
@@ -72,20 +117,7 @@
         android:clipToPadding="false"
         android:paddingBottom="80dp" />
 
-    <!-- FABs -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/scanFab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_margin="16dp"
-        android:layout_marginBottom="80dp"
-        android:src="@drawable/baseline_qr_code_24"
-        android:contentDescription="扫码"
-        app:tint="@color/white"
-        app:backgroundTint="@color/black" />
-
+    <!-- FABs: clear + export only (scan is in the input bar) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/clearFab"
         android:layout_width="wrap_content"

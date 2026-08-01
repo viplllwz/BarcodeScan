@@ -16,15 +16,31 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/sessionDateTime"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="2026-07-31 15:30:00"
-            android:textSize="16sp"
-            android:textColor="@color/black"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/sessionName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="季度盘点"
+                android:textSize="16sp"
+                android:textColor="@color/black"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/sessionDateTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2026-07-31 15:30:00"
+                android:textSize="14sp"
+                android:textColor="@color/dark_gray" />
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/sessionExportStatus"
@@ -49,5 +65,55 @@
         android:text="0 种商品 · 0 件"
         android:textSize="14sp"
         android:textColor="@color/dark_gray" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/resumeBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="继续盘点"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/green" />
+
+        <Button
+            android:id="@+id/exportBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="重新导出"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/black" />
+
+        <Button
+            android:id="@+id/deleteBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="删除"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:backgroundTint="#E53935" />
+
+    </LinearLayout>
 
 </LinearLayout>
